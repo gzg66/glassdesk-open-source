@@ -233,6 +233,14 @@
                 <ComboBoxItem Content="底部右侧" />
                 <ComboBoxItem Content="顶部居中" />
               </ComboBox>
+              <TextBlock Margin="0,12,0,4" Text="显示方式"
+                         Foreground="{Binding ForegroundBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
+              <RadioButton x:Name="DockAlwaysVisibleRadio" Content="常驻显示" Margin="0,2" GroupName="DockVisibility"
+                           AutomationProperties.Name="Dock 常驻显示" Checked="OnDockControlChanged" />
+              <RadioButton x:Name="DockAutoHideRadio" Content="自动隐藏" Margin="0,2" GroupName="DockVisibility"
+                           AutomationProperties.Name="Dock 自动隐藏" Checked="OnDockControlChanged" />
+              <TextBlock Margin="0,2,0,4" TextWrapping="Wrap" FontSize="11"
+                         Text="自动隐藏时，鼠标移到 Dock 原来的位置即可唤出，移开约 300 毫秒后收起；菜单、拖动图标和启动台打开期间保持显示。" />
               <TextBlock Margin="0,10,0,4" Text="水平偏移"
                          Foreground="{Binding ForegroundBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
               <Slider x:Name="DockOffsetXSlider" AutomationProperties.Name="Dock 水平偏移"

@@ -37,7 +37,12 @@ public sealed class GlassDeskSettings
     /// 文件时，某个节可能为 null，尽管类型声明并非如此；
     /// 否则每个使用方都得自己做 null 检查。
     /// </summary>
-    public void Normalize()
+    /// <param name="disableRemovedFeatures">
+    /// 从磁盘读入旧配置时置 <c>true</c>：把早期版本里已移除的功能（自动隐藏等）关掉。
+    /// 保存路径必须传 <c>false</c>，否则用户在设置页刚打开的开关会被就地改回去
+    /// ——这正是「显示方式」点了没反应的原因。
+    /// </param>
+    public void Normalize(bool disableRemovedFeatures = false)
     {
         Appearance ??= new AppearanceSettings();
         Dock ??= new DockSettings();
@@ -46,8 +51,14 @@ public sealed class GlassDeskSettings
         Display ??= new DisplaySettings();
         Performance ??= new PerformanceSettings();
         DesktopTaskbar ??= new DesktopTaskbarSettings();
-        Dock.AutoHide = false;
+        // EdgeRevealEnabled 仍无 UI，始终关闭（指针唤出由 AutoHide 的静止矩形判定负责）。
         Dock.EdgeRevealEnabled = false;
+        if (disableRemovedFeatures)
+        {
+            // 旧配置里的 AutoHide 属于早期未完成功能，读入时关掉一次；
+            // 用户之后可以在设置页重新打开（fork 已实现 1.3.3 的显示方式）。
+            Dock.AutoHide = false;
+        }
         Launcher.FullscreenMode = false;
         Shortcuts.HotCornersEnabled = false;
         Shortcuts.MouseSideButtonsEnabled = false;

@@ -1481,7 +1481,21 @@ public partial class DockWindow : GlassWindow
         else
         {
             _edgeRevealedDuringSuppression = false;
-            _autoHide.ForceShown(now);
+
+            // 「常驻显示」：只要没被遮挡就强制显示，保持原行为。
+            // 「自动隐藏」：跟随指针——指针离开 Dock 静止矩形后按 AutoHideLeaveDelayMs 收起，
+            // 指针回到原位置（或可见区域）时立即唤出。菜单、拖动、启动台打开期间由
+            // PushSuppress / _launcherContainerActive 分支拦住，不会收起。
+            if (!Settings.AutoHide)
+            {
+                _autoHide.ForceShown(now);
+            }
+            else
+            {
+                if (pointerOverDockPosition || pointerOverVisibleDock) _autoHide.PointerEnter(now);
+                else _autoHide.PointerLeave(now);
+                _autoHide.Poll(now);
+            }
         }
 
         if (_autoHide.State == AutoHideState.Hidden)

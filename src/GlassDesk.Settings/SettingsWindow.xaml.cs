@@ -193,6 +193,8 @@ public partial class SettingsWindow : GlassWindow
             DockScaleSlider.Value = dock.SizeScale;
             DockScaleReadout.Text = $"{dock.SizeScale:P0} · 图标 {48 * dock.SizeScale:0} DIP";
             DockPlacementCombo.SelectedIndex = (int)dock.Placement;
+            DockAlwaysVisibleRadio.IsChecked = !dock.AutoHide;
+            DockAutoHideRadio.IsChecked = dock.AutoHide;
             var display = PrimaryDisplaySession is { IsAvailable: true } session
                 ? session.Display
                 : PrimaryDisplaySession is null ? DisplayService.Primary() : null;
@@ -223,7 +225,10 @@ public partial class SettingsWindow : GlassWindow
                 ? "配置文件中有超出支持范围的数值，已显示为最近的可用值；请先恢复当前页默认，避免覆盖原数据。"
                 : "整体大小调整图标与栏高度；外框长度可独立调整。修改后立即保存并应用。";
         }
-        finally { _loadingDockControls = false; }
+        finally
+        {
+            _loadingDockControls = false;
+        }
     }
 
     private static bool Within(double value, double minimum, double maximum) => double.IsFinite(value) && value >= minimum && value <= maximum;
@@ -341,6 +346,9 @@ public partial class SettingsWindow : GlassWindow
 
     private void OnDockControlChanged(object sender, RoutedEventArgs e)
     {
+        // 单选按钮只在「被选中」时保存一次。WPF 在同组切换时会先给旧按钮发 Unchecked，
+        // 那一刻新按钮状态还没稳定，按旧状态保存会把用户刚点的选择顶回去（1.3.3 显示方式的实际坑）。
+        if (sender is System.Windows.Controls.RadioButton { IsChecked: not true }) return;
         if (_loadingDockControls || _dataStore is null || DockPlacementCombo.SelectedIndex < 0) return;
         if (_dockValuesOutOfRange) { LoadDockControls(); return; }
 
@@ -362,14 +370,17 @@ public partial class SettingsWindow : GlassWindow
             Placement = (DockPlacement)DockPlacementCombo.SelectedIndex,
             OffsetX = DockOffsetXSlider.Value,
             OffsetY = DockOffsetYSlider.Value,
-            AutoHide = false,
+            AutoHide = previousDock.AutoHide,
             AutoHideLeaveDelayMs = previousDock.AutoHideLeaveDelayMs,
-            EdgeRevealEnabled = false,
+            EdgeRevealEnabled = previousDock.EdgeRevealEnabled,
             EdgeHotzoneSize = previousDock.EdgeHotzoneSize,
             BlockRevealWhenCovered = previousDock.BlockRevealWhenCovered,
             TargetDisplayId = previousDock.TargetDisplayId,
             ShowRunningIndicator = previousDock.ShowRunningIndicator,
         };
+
+        // 显示方式只改 AutoHide，其余字段必须原样保留（规则在 SettingsPageEditor，有测试覆盖）。
+        next = SettingsPageEditor.WithDockVisibility(next, DockAutoHideRadio.IsChecked == true);
 
         var candidate = SettingsPageEditor.Clone(current);
         candidate.Dock = next;

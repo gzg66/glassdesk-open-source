@@ -21,6 +21,42 @@ public static class SettingsPageEditor
         target.DesktopTaskbar = source.DesktopTaskbar;
     }
 
+    /// <summary>
+    /// 得到一份把 Dock 显示方式改成指定值的副本（<c>true</c> = 自动隐藏）。
+    /// </summary>
+    /// <remarks>
+    /// 「显示方式」只改 <see cref="DockSettings.AutoHide"/>，其余字段（位置、大小、
+    /// 偏移、各入口开关）必须原样带过去——设置页每次只改一个控件，不能因为
+    /// 切换显示方式就把用户调好的布局打回默认。
+    /// 返回新对象而不是就地修改：设置页保存失败时旧值必须仍可用。
+    /// </remarks>
+    public static DockSettings WithDockVisibility(DockSettings dock, bool autoHide)
+    {
+        ArgumentNullException.ThrowIfNull(dock);
+
+        return new DockSettings
+        {
+            SizeScale = dock.SizeScale,
+            ShowLauncherEntry = dock.ShowLauncherEntry,
+            ShowThisPcEntry = dock.ShowThisPcEntry,
+            ShowDesktopIconsEntry = dock.ShowDesktopIconsEntry,
+            FrameLengthDip = dock.FrameLengthDip,
+            IconSize = dock.IconSize,
+            IconSpacing = dock.IconSpacing,
+            MagnificationPeak = dock.MagnificationPeak,
+            Placement = dock.Placement,
+            OffsetX = dock.OffsetX,
+            OffsetY = dock.OffsetY,
+            AutoHide = autoHide,
+            AutoHideLeaveDelayMs = dock.AutoHideLeaveDelayMs,
+            EdgeRevealEnabled = dock.EdgeRevealEnabled,
+            EdgeHotzoneSize = dock.EdgeHotzoneSize,
+            BlockRevealWhenCovered = dock.BlockRevealWhenCovered,
+            TargetDisplayId = dock.TargetDisplayId,
+            ShowRunningIndicator = dock.ShowRunningIndicator,
+        };
+    }
+
     public static GlassDeskSettings ResetPage(GlassDeskSettings settings, string pageName)
     {
         var copy = Clone(settings);

@@ -45,6 +45,13 @@ public sealed class DesktopTaskbarSettings
     /// </summary>
     public bool TaskbarAutoHideEnabled { get; set; }
 
+    /// <summary>
+    /// 接管 Windows 原生任务栏：隐藏任务栏窗口，并把单独轻按 Win 键换成
+    /// 开关 GlassDesk 启动台。默认关闭——不打扰 Windows 是本类的既定约定，
+    /// 只有用户主动打开这项设置才动手，退出产品时恢复原状。
+    /// </summary>
+    public bool HideNativeTaskbar { get; set; }
+
     internal void Normalize()
     {
         ToggleDesktopIcons ??= new HotkeyDefinition();

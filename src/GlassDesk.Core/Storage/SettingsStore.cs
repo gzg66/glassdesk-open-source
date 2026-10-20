@@ -32,7 +32,7 @@ public sealed class SettingsStore
         var outcome = _store.Load(static () => new GlassDeskSettings());
 
         var settings = outcome.Value;
-        settings.Normalize();
+        settings.Normalize(disableRemovedFeatures: true);
         Migrate(settings, outcome.Status == LoadStatus.Loaded ? ReadSchemaVersionOnDisk() : settings.SchemaVersion);
 
         Current = settings;
