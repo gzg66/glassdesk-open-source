@@ -17,4 +17,10 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <!-- fork patch(010): Win 键补发的「身份」判定放在 Core 里，便于单测（见 WinKeyIdentity）。
+       Core 是最底层契约层，Platform 引用它符合既有分层，不引入循环。 -->
+  <ItemGroup>
+    <ProjectReference Include="..\GlassDesk.Core\GlassDesk.Core.csproj" />
+  </ItemGroup>
+
 </Project>

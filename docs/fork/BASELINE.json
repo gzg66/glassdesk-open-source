@@ -8,8 +8,8 @@
     "knownCause":  "AppServices failures all trace to build\\package.ps1 missing from the public snapshot; fix upstream, never in our fork.",
     "projects":  {
                      "GlassDesk.Core.Tests":  {
-                                                  "total":  181,
-                                                  "passed":  181,
+                                                  "total":  185,
+                                                  "passed":  185,
                                                   "failed":  0,
                                                   "knownFailures":  [
 

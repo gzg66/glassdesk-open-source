@@ -1,6 +1,6 @@
 # patch 台账（自动生成，勿手改）
 
-生成时间: 2026-10-20T07:39:22Z ｜ 上游: `upstream/main` @ c825c9d ｜ 集成分支: `main`
+生成时间: 2026-10-20T11:40:30Z ｜ 上游: `upstream/main` @ c825c9d ｜ 集成分支: `main`
 
 每行的明细在 `docs/fork/patches/`。改 patch 就改那里的文件，再重建本表。
 
@@ -16,5 +16,6 @@
 | 007 | patch(007): fix(app): 全屏误判 / 启动台焦点与搜索 / 发布保留数据 | 11 | 0 | 007-fullscreen-focus-publish.md |
 | 008 | patch(008): docs(fork): 同步模型改为 rebase 重放，legacy PowerShell 脚本降级 | 8 | 0 | 008-sync-model-rebase.md |
 | 009 | patch(009): chore(fork): 更新 .fork/bin 工具并装 systemd 每日巡检 | 4 | 0 | 009-fork-tooling-update.md |
+| 010 | patch(010): fix(app): Win 组合键补发错键，Win+D 等全部失效 | 9 | 0 | 010-winkey-chord-replay-fix.md |
 
-合计: 10 个 patch（预算 40）
+合计: 11 个 patch（预算 40）

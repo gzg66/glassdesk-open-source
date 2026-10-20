@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
 
+using GlassDesk.Core.Input;
+
 namespace GlassDesk.Platform.Input;
 
 /// <summary>一次按键事件的处置结果；由产品的纯逻辑层决定，钩子只负责执行。</summary>
@@ -19,6 +21,8 @@ public readonly record struct WinKeyDirective(bool Swallow, bool ReplayWinDown, 
 /// 一旦发现用户按了别的键，就先补发一次 Win 按下，让 Win+E 这类组合键照常工作，
 /// 抬起时再补发一次 Win 抬起收尾。
 /// 注入事件直接放行，否则自己补发的按下会被自己吞掉。
+/// 补发的键<strong>必须是物理按下的那个 Win 键</strong>（左/右），不能拿触发组合键的字母键顶替，
+/// 否则系统看到的是「单独按了那个字母」，Win+X 全线失效（见 <see cref="WinKeyIdentity"/>）。
 /// </remarks>
 public sealed class WinKeyHook : IDisposable
 {
@@ -31,6 +35,7 @@ public sealed class WinKeyHook : IDisposable
     private const int VkLWin = 0x5B;
     private const int VkRWin = 0x5C;
     private const uint KeyeventfKeyup = 0x0002;
+    private const uint KeyeventfExtended = 0x0001;
     private const nuint ReplayMarker = 0x4744_5701;
 
     private static WinKeyHook? _owner;
@@ -39,6 +44,7 @@ public sealed class WinKeyHook : IDisposable
     private readonly Func<bool, bool, WinKeyDirective> _decide;
     private nint _handle;
     private bool _disposed;
+    private WinKeyIdentity _winIdentity = WinKeyIdentity.LeftWin;
 
     /// <param name="decide">参数依次为「是否 Win 键」「是否按下」，返回处置结果。</param>
     public WinKeyHook(Func<bool, bool, WinKeyDirective> decide)
@@ -104,17 +110,25 @@ public sealed class WinKeyHook : IDisposable
 
         var isWinKey = data.VirtualKey is VkLWin or VkRWin;
         var isDown = message is WmKeyDown or WmSysKeyDown;
+
+        // 记住这次物理按下的是左 Win 还是右 Win（含扫描码与扩展位）。
+        // 组合键补发时要用它，而不是触发组合键的那个字母键。
+        _winIdentity = WinKeyIdentity.FromEvent((int)data.VirtualKey, data.ScanCode, data.Flags, _winIdentity);
+
         var decision = _decide(isWinKey, isDown);
 
-        if (decision.ReplayWinDown) SendWinKey(keyUp: false, (int)data.VirtualKey);
-        if (decision.ReplayWinUp) SendWinKey(keyUp: true, (int)data.VirtualKey);
+        if (decision.ReplayWinDown) SendWinKey(keyUp: false);
+        if (decision.ReplayWinUp) SendWinKey(keyUp: true);
         if (decision.ToggleLauncher) Tapped?.Invoke();
 
         return decision.Swallow ? 1 : CallNextHookEx(0, code, wParam, lParam);
     }
 
-    private static void SendWinKey(bool keyUp, int virtualKey)
+    private void SendWinKey(bool keyUp)
     {
+        var flags = keyUp ? KeyeventfKeyup : 0u;
+        if (_winIdentity.Extended) flags |= KeyeventfExtended;
+
         var input = new Input
         {
             Type = 1,
@@ -122,9 +136,9 @@ public sealed class WinKeyHook : IDisposable
             {
                 Keyboard = new KeyboardInput
                 {
-                    VirtualKey = (ushort)virtualKey,
-                    ScanCode = 0,
-                    Flags = keyUp ? KeyeventfKeyup : 0,
+                    VirtualKey = (ushort)_winIdentity.VirtualKey,
+                    ScanCode = (ushort)_winIdentity.ScanCode,
+                    Flags = flags,
                     Time = 0,
                     ExtraInfo = ReplayMarker,
                 },
