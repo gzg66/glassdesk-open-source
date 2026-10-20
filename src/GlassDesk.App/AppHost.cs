@@ -338,9 +338,12 @@ internal sealed partial class AppHost : IDisposable
         try
         {
             _launcher.RefreshDiagnostics();
+            _launcher.ResetSearchForOpen();
             _dock?.SetLauncherContainerState(true);
             _launcher.ShowWithTransition(sourceBounds ?? _dock?.GetLauncherButtonPixelBounds());
             _launcher.Activate();
+            // Win 键唤出时前台窗口还停在 shell 那边，光靠 Activate() 打字进不来。
+            _launcher.TakeKeyboardFocus();
         }
         finally
         {

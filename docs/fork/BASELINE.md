@@ -21,7 +21,7 @@
 |---|---|---|---|---|
 | `GlassDesk.Core.Tests` | 181 | 181 | 0 | 全绿（含自有 DockVisibility 3 个、WheelNavigation 8 个、Normalize 回归 1 个、WinKeyGestureRouter 8 个） |
 | `GlassDesk.AppServices.Tests` | 378 | 332 | **46** | 基线红，原因见下（含自有 DesktopEntryScanner 测试 6 个） |
-| `GlassDesk.Dock.Tests` | 477 | 477 | 0 | 全绿（**需要先做下面的 junction**） |
+| `GlassDesk.Dock.Tests` | 481 | 481 | 0 | 全绿（**需要先做下面的 junction**） （含自有 FullscreenWindowRules 4 个）|
 | `dotnet build src/GlassDesk.App/... -c Release` | — | — | — | 0 警告 0 错误 |
 
 ## 已知失败原因 1：Dock 测试硬编码作者机器路径

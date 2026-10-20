@@ -16,6 +16,8 @@
 
 .PARAMETER OutputDir
     输出目录，默认 artifacts\publish。必须在仓库的 artifacts\ 下（安全护栏）。
+    输出目录里的 Data\（用户设置与应用库）会在重新发布时自动保留；
+    只有显式加 -ResetData 才会丢弃（首次分发或想从空库开始时用）。
 
 .PARAMETER Zip
     额外生成 artifacts\GlassDesk-<version>-win-x64-portable.zip。
@@ -44,7 +46,8 @@ param(
     [switch]$Zip,
     [switch]$Run,
     [switch]$KeepPrevious,
-    [string]$Version
+    [string]$Version,
+    [switch]$ResetData
 )
 
 $ErrorActionPreference = 'Continue'
@@ -145,6 +148,27 @@ if ($stopped.Count -gt 0) {
 }
 else {
     Write-Info '没有需要停止的进程'
+}
+
+# ---------------------------------------------------------------- 保住用户数据
+
+# 运行时数据（settings.json / apps.json / 图标 / 布局）就在输出目录的 Data\ 下。
+# 这里先把它挪到 artifacts\data-snapshot，发布完再放回去——否则每次重新发布都会
+# 把用户的设置和导入的程序清空。要全新的数据请显式加 -ResetData。
+$dataDir = Join-Path $outFull 'Data'
+$dataSnapshot = Join-Path $repoRoot 'artifacts\data-snapshot'
+$dataBackedUp = $false
+if (-not $ResetData -and (Test-Path $dataDir)) {
+    Write-Step '备份用户数据'
+    if (Test-Path $dataSnapshot) { Remove-Item $dataSnapshot -Recurse -Force -ErrorAction SilentlyContinue }
+    New-Item -ItemType Directory -Force -Path $dataSnapshot | Out-Null
+    Copy-Item (Join-Path $dataDir '*') $dataSnapshot -Recurse -Force
+    $dataFiles = @(Get-ChildItem $dataSnapshot -Recurse -File)
+    Write-Info ('已备份 ' + $dataFiles.Count + ' 个文件 → ' + $dataSnapshot)
+    $dataBackedUp = $true
+}
+elseif ($ResetData) {
+    Write-Warn2 '按 -ResetData 要求，本次不保留旧数据'
 }
 
 # ---------------------------------------------------------------- 清理输出
@@ -249,6 +273,17 @@ if ($Zip) {
     Write-Info ('zip: ' + $zipPath + ' (' + $zipMB + 'MB)')
 }
 
+# ---------------------------------------------------------------- 恢复用户数据
+
+if ($dataBackedUp) {
+    Write-Step '恢复用户数据'
+    $dataDir = Join-Path $outFull 'Data'
+    New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
+    Copy-Item (Join-Path $dataSnapshot '*') $dataDir -Recurse -Force
+    Remove-Item $dataSnapshot -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Info ('设置与已导入的程序已保留在 ' + $dataDir)
+}
+
 # ---------------------------------------------------------------- 可选运行
 
 if ($Run) {
@@ -272,4 +307,5 @@ Write-Host ('便携版: ' + $exe) -ForegroundColor Green
 if ($zipPath) { Write-Host ('压缩包: ' + $zipPath) -ForegroundColor Green }
 Write-Host ('耗时: ' + $elapsed + 's') -ForegroundColor DarkGray
 Write-Host '分发时只拷这个目录；不要包含 Data/（运行时才会在 exe 同目录生成）。' -ForegroundColor DarkGray
+if ($dataBackedUp) { Write-Host ('用户数据: ' + (Join-Path $outFull 'Data') + '（重新发布时会自动保留，-ResetData 才会清空）') -ForegroundColor DarkGray }
 exit 0

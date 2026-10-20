@@ -127,7 +127,7 @@ dotnet test tests/GlassDesk.Dock.Tests/GlassDesk.Dock.Tests.csproj -c Release
 | 工程 | 基线 |
 |---|---|
 | Core | 181/181 通过 |
-| Dock | 477/477 通过（**依赖 `D:\dotnet10` → SDK 目录的 junction**，测试里写死了作者机器路径；没有 junction 会有 5 个 `Win32Exception`） |
+| Dock | 481/481 通过（**依赖 `D:\dotnet10` → SDK 目录的 junction**，测试里写死了作者机器路径；没有 junction 会有 5 个 `Win32Exception`） |
 | AppServices | 378 中 46 失败 —— 公开快照缺 `build/package.ps1`，**属上游问题，不要修** |
 
 - 判定标准是"**不引入基线外新失败**"，不是"必须全绿"。
@@ -140,9 +140,11 @@ dotnet test tests/GlassDesk.Dock.Tests/GlassDesk.Dock.Tests.csproj -c Release
   powershell -NoProfile -File scripts/publish-portable.ps1          # 输出 artifacts\publish
   powershell -NoProfile -File scripts/publish-portable.ps1 -Run     # 发布后立即启动
   powershell -NoProfile -File scripts/publish-portable.ps1 -Zip     # 额外打 artifacts\GlassDesk-<ver>-win-x64-portable.zip
+  powershell -NoProfile -File scripts/publish-portable.ps1 -ResetData # 丢弃旧数据，从空设置/空应用库开始
   ```
+  运行时数据（`settings.json`、`apps.json`、图标、布局）就在输出目录的 `Data\` 下。脚本会在清理前把它备份到 `artifacts\data-snapshot`，发布完（打完 zip 之后）再放回去——**重新发布不再清空设置与已导入的程序**；只有 `-ResetData` 才会丢。
   脚本自动处理三件事：① 解析**带 SDK** 的 dotnet（PATH 里的 `C:\Program Files\dotnet` 可能只有运行时，手打会报 `No .NET SDKs were found`，**这不是 global.json 问题**）；② 停掉占用输出目录的 GlassDesk（否则 `MSB3021`）；③ 复制 `LICENSE`/`NOTICE`/`docs/third-party`，并校验输出里没有 `Data/`、`settings.json`、`apps.json`，且确为 self-contained（有 `coreclr.dll`/`hostfxr.dll`）。
-  实测：285 文件 / 195.9MB / `GlassDesk.exe` 0.28MB / fileVersion 1.3.1.0；zip 76.6MB；增量耗时 ~16s。
+  实测：285 文件 / 195.9MB（不含 Data）/ `GlassDesk.exe` 0.28MB / fileVersion 1.3.1.0；zip 76.6MB；增量耗时 ~16s。
   退出码：`1` 前置检查或清理失败、`2` publish 失败、`3` 产物校验或启动失败。
   分发只拷 `artifacts\publish`（或 zip）；`Data/` 是运行时在 exe 同目录生成的，**不要打进分发包**。
 - **禁止 `dotnet build GlassDesk.slnx`**：`tests/GlassDesk.UiAcceptance` 目标框架偏低，整解报 `NU1201`（上游已知）。

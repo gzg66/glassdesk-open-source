@@ -315,6 +315,13 @@ public static class FullscreenDetector
         if (IsExcluded(handle, FullscreenOptions.Default, out _)) return new(false, false);
         if (!TryGetGeometry(handle, out var geometry, out _)) return new(null, false);
         var coversMonitor = Covers(geometry.VisibleFrame ?? geometry.WindowRect, geometry.MonitorBounds);
+
+        // 与 IsFullscreenActive 同一条规则：带标题栏的最大化窗口只是普通桌面程序。
+        // 任务栏隐藏后它的可见边框和整块屏幕重合，不排除就会让 Dock 进游戏休眠，
+        // 于是最大化浏览器前永远唤不出 Dock。
+        if (FullscreenWindowRules.IsOrdinaryMaximizedWindow(coversMonitor, geometry.IsMaximized, HasCaption(handle)))
+            coversMonitor = false;
+
         return new(coversMonitor || QueryShellStateCore().State == UserNotificationState.RunningD3dFullScreen, false);
     }
 
@@ -392,6 +399,12 @@ public static class FullscreenDetector
         }
     }
 
+    private const int WsCaption = 0x00C00000;
+
+    /// <summary>窗口是否带标题栏样式（<c>WS_CAPTION</c>）。无边框全屏没有它。</summary>
+    private static bool HasCaption(nint handle)
+        => (User32.GetWindowLong(handle, User32.GwlStyle) & WsCaption) != 0;
+
     /// <summary>路径一的完整形态：判定 + 解释 + 几何数据。</summary>
     private static (FullscreenVerdict Verdict, string Reason, WindowGeometry Geometry) EvaluateWindowPath(nint handle, FullscreenOptions options)
     {
@@ -414,6 +427,17 @@ public static class FullscreenDetector
 
         if (Covers(visible, geometry.MonitorBounds))
         {
+            // 任务栏自动隐藏/被接管之后，最大化窗口的可见边框与显示器完全重合，
+            // 几何上无法与全屏区分。带标题栏的最大化窗口是普通桌面程序——
+            // 用户在这种窗口前仍然需要 Dock，不能让它进「全屏游戏休眠」。
+            if (FullscreenWindowRules.IsOrdinaryMaximizedWindow(coversMonitor: true, geometry.IsMaximized, HasCaption(handle)))
+            {
+                return (
+                    FullscreenVerdict.NotFullscreen,
+                    $"最大化并带标题栏的窗口铺满了 {geometry.MonitorDeviceName}，但它是普通桌面窗口，不是全屏应用",
+                    geometry);
+            }
+
             var note = geometry.IsMaximized
                 ? "（该窗口带最大化状态；任务栏自动隐藏时，最大化窗口与全屏在几何上无法区分）"
                 : string.Empty;
