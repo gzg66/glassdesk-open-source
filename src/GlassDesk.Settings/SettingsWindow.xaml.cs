@@ -48,6 +48,9 @@ public partial class SettingsWindow : GlassWindow
 
     public event EventHandler<LauncherSettings>? LauncherSettingsChanged;
 
+    /// <summary>「系统任务栏」开关变化；参数是保存后的最新设置。</summary>
+    public event EventHandler<DesktopTaskbarSettings>? DesktopTaskbarChanged;
+
     public SettingsWindow()
     {
         _loadingAppearanceControls = true;
@@ -63,7 +66,8 @@ public partial class SettingsWindow : GlassWindow
         }
 
         _sectionHeadings = [AppearanceSectionHeading, DockSectionHeading, LauncherSectionHeading,
-            ShortcutsSectionHeading, PerformanceSectionHeading, DesktopSectionHeading, BackupSectionHeading, AboutSectionHeading];
+            ShortcutsSectionHeading, PerformanceSectionHeading, DesktopSectionHeading, TaskbarSectionHeading,
+            BackupSectionHeading, AboutSectionHeading];
         PlannedPages =
         [
             "外观",
@@ -72,6 +76,7 @@ public partial class SettingsWindow : GlassWindow
             "快捷操作",
             "性能",
             "桌面",
+            "系统任务栏",
             "备份恢复",
             "关于",
         ];
@@ -111,6 +116,7 @@ public partial class SettingsWindow : GlassWindow
         LoadInteractionControls();
         LoadPerformanceControls();
         LoadDesktopStatus();
+        LoadNativeTaskbarControls();
         RefreshDiagnostics(loadReport);
     }
 

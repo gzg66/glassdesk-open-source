@@ -304,6 +304,21 @@
               </StackPanel>
               <TextBlock x:Name="DesktopSettingsStatus" Margin="0,8,0,14" TextWrapping="Wrap" AutomationProperties.Name="桌面图标显示状态" />
               <Separator Margin="0,4,0,14" />
+              <TextBlock x:Name="TaskbarSectionHeading" FontSize="16" FontWeight="SemiBold" Text="系统任务栏"
+                         Foreground="{Binding ForegroundBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
+              <CheckBox x:Name="HideNativeTaskbarCheck" Margin="0,10,0,4"
+                        Content="隐藏 Windows 原生任务栏（Win 键改用 GlassDesk 启动台）"
+                        AutomationProperties.Name="隐藏 Windows 原生任务栏"
+                        Checked="OnHideNativeTaskbarChanged" Unchecked="OnHideNativeTaskbarChanged" />
+              <TextBlock Margin="0,6,0,6" TextWrapping="Wrap"
+                         Text="隐藏后任务栏不再自动滑出，指针移回 Dock 原位置也不会被系统任务栏抢走。单独轻按 Win 键打开 GlassDesk 启动台；Win+其他键仍是系统组合键。退出 GlassDesk 时自动恢复任务栏。" />
+              <StackPanel Orientation="Horizontal" Margin="0,2,0,8">
+                <Button x:Name="RevealNativeTaskbarButton" Padding="10,7" Content="临时显示 Windows 任务栏（60 秒）"
+                        AutomationProperties.Name="临时显示 Windows 任务栏" Click="OnRevealNativeTaskbarClick" />
+              </StackPanel>
+              <TextBlock x:Name="NativeTaskbarStatus" Margin="0,2,0,14" TextWrapping="Wrap"
+                         AutomationProperties.Name="系统任务栏状态" />
+              <Separator Margin="0,4,0,14" />
               <TextBlock x:Name="BackupSectionHeading" FontSize="16" FontWeight="SemiBold" Text="备份与恢复"
                          Foreground="{Binding ForegroundBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
               <TextBlock x:Name="BackupInfoText" Margin="0,10,0,14" TextWrapping="Wrap" AutomationProperties.Name="备份与恢复说明"

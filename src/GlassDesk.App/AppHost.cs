@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Threading;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
@@ -68,6 +69,7 @@ internal sealed partial class AppHost : IDisposable
     private LauncherWindow? _launcher;
     private SettingsWindow? _settings;
     private DockSettingsHost? _dockSettings;
+    private DesktopTaskbarIntegration? _desktopTaskbar;
     private bool _shuttingDown;
     private bool _disposed;
     private readonly DeferredCommandGate _deferredCommandGate = new();
@@ -248,6 +250,9 @@ internal sealed partial class AppHost : IDisposable
             _guard.CommandReceived -= OnCommandReceived;
         }
 
+        _desktopTaskbar?.Dispose();
+        _desktopTaskbar = null;
+
         DisposeInteractionController();
         DisposePerformanceCoordinator();
 
@@ -271,6 +276,55 @@ internal sealed partial class AppHost : IDisposable
     }
 
     /// <summary>在启动时绑定的主显示器上显示启动台，可从 Dock 图标开始过渡。</summary>
+    /// <summary>
+    /// 打开系统托盘图标列表。Win 11 上直接点任务栏自己的按钮，任务栏保持隐藏；
+    /// 拿不到那个按钮时退回「临时露 60 秒任务栏」。
+    /// </summary>
+    private void ShowTrayFlyout()
+    {
+        // 启动台自己会抢焦点：托盘面板一弹出就会被它关掉，所以先收起启动台再点。
+        if (_launcher?.IsVisible == true) HideLauncher();
+
+        var timer = new DispatcherTimer(DispatcherPriority.Normal, _application.Dispatcher)
+        {
+            Interval = TimeSpan.FromMilliseconds(350),
+        };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            var shown = TrayFlyout.TryShow(out var error);
+            if (shown)
+            {
+                LogTaskbarEvent("已打开系统托盘图标列表");
+                return;
+            }
+
+            // 不弹设置窗口、不提示：设置页可能根本没打开，用户只是想要那份图标。
+            LogTaskbarEvent("直接打开托盘列表失败（" + error + "），改为临时显示任务栏 60 秒");
+            RevealNativeTaskbar();
+        };
+        timer.Start();
+    }
+
+    /// <summary>任务栏相关的后台事件只写日志，不打扰当前窗口。</summary>
+    private void LogTaskbarEvent(string message)
+    {
+        try
+        {
+            var directory = _data!.Paths.LogDirectory;
+            Directory.CreateDirectory(directory);
+            File.AppendAllText(Path.Combine(directory, "desktop-taskbar.log"),
+                $"[{DateTime.Now:O}] {message}{Environment.NewLine}");
+        }
+        catch
+        {
+            // 日志失败不影响功能。
+        }
+    }
+
+    /// <summary>把 Windows 原生任务栏临时露出来（托盘图标在里面），60 秒后自动隐藏。</summary>
+    private void RevealNativeTaskbar() => _desktopTaskbar?.RevealTaskbarTemporarily(TimeSpan.FromSeconds(60));
+
     private void ShowLauncher() => ShowLauncher(null);
 
     private void ShowLauncher(PixelRect? sourceBounds)
@@ -377,6 +431,18 @@ internal sealed partial class AppHost : IDisposable
                 _application.Dispatcher.BeginInvoke(RefreshLibraryForPerformance);
         };
         _settings.LauncherSettingsChanged += (_, settings) => _launcher?.ApplySettings(settings);
+
+        // 原生任务栏接管：设置一变就重新应用，退出时由 Dispose 恢复。
+        _desktopTaskbar = new DesktopTaskbarIntegration(_data!, _application.Dispatcher,
+            () => ExecuteInteraction(GlassDesk.Core.Input.InputAction.ToggleLauncher));
+        _desktopTaskbar.StatusChanged += status => _settings?.ReportNativeTaskbarStatus(status);
+        _settings.DesktopTaskbarChanged += (_, _) => _desktopTaskbar?.Apply();
+        _desktopTaskbar.Apply();
+        _settings.ReportNativeTaskbarStatus(_desktopTaskbar.Status);
+        _settings.TaskbarRevealRequested += (_, _) => RevealNativeTaskbar();
+
+        // 任务栏被接管后桌面托盘不可见，启动台顶部按钮负责把托盘列表叫出来。
+        _launcher.ShowTrayFlyout = ShowTrayFlyout;
 
         _launcher.ApplySettings(_data!.Settings.Current.Launcher);
 
