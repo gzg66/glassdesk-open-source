@@ -45,7 +45,7 @@
 ## 2. 三条硬事实
 
 1. **没有插件体系**。无 DI、无加载器，`internal sealed partial` 在 `AppHost.cs` 手工装配，`InternalsVisibleTo` 只对 tests 开放。→ **功能只能 in-tree 改**。
-2. **上游历史是压缩快照**。→ **不要 cherry-pick 上游 commit**；升级只能整版合并；**同步用 merge，不用 rebase**。
+2. **上游历史是压缩快照**。→ **不要 cherry-pick 上游 commit**；升级只整版替换基线，我们的 patch 层用 **`rebase --onto` 重放**。**禁止 `git merge upstream/main` 进 `main`**：历史里一旦混进上游节点，薄层就断了，`fork-doctor` 会硬失败。
 3. **程序内置自动更新**，指向 `everlosttime/glassdesk-updates`。→ 不改更新源，自己的构建会被官方安装包静默覆盖。
 
 ---
@@ -160,22 +160,26 @@ dotnet test tests/GlassDesk.Dock.Tests/GlassDesk.Dock.Tests.csproj -c Release
 
 现在没有上游更新时**不要**跑同步。检查与执行：
 
-```powershell
-powershell -NoProfile -File scripts/check-upstream.ps1     # 0=最新, 10=有新快照, 1=环境问题
-powershell -NoProfile -File scripts/sync-upstream.ps1 -DryRun
-powershell -NoProfile -File scripts/sync-upstream.ps1      # 0=OK 1=前置失败 2=有冲突 3=验证失败
+```bash
+bash .fork/bin/fork-check-upstream.sh    # 0=最新, 10=有新快照, 2=环境问题
+bash .fork/bin/fork-sync.sh --check      # 上游新提交 + 冲突面分级（>5 重叠文件 = 高风险）
+bash .fork/bin/fork-sync.sh --apply      # rebase --onto 重放 → range-diff 校验 → 跑 TEST_CMD → 记 SYNC-LOG
+bash .fork/bin/fork-sync.sh --abort      # 冲突搞不定时回滚
+bash .fork/bin/fork-doctor.sh            # 薄层体检，有 FAIL 不许推
 ```
 
-- 有冲突：读 `artifacts/fork-sync/<时间戳>/REPORT.md`，逐文件解，每解一个立即编译，然后 `-Resume` 续跑。
+- 有冲突：按 `docs/fork/CONFLICTS.md` 的分类逐文件解，**每解一个立即编译**，然后 `git rebase --continue`。
 - 冲突处理与自主边界**严格按** `docs/fork/AGENT-SYNC-PROTOCOL.md`：低/中冲突面可自主解决，高冲突面或上游删挂载点必须停下问人；最多 3 轮。
-- 同步完成后必须：合并回 `main` → 更新 `docs/fork/LAST-SYNCED` → 推送 → 交付说明含手验清单。
+- 同步完成后必须：`main` 上 rebase 完成 → 更新 `docs/fork/LAST-SYNCED` → 补 `SYNC-LOG.md` → 推送（需同意）→ 交付说明含手验清单。
 - 压缩快照下 `git diff` 是唯一可信的上游变更来源，**不要靠 commit message 推断**。
+- `range-diff` 是“没丢 patch”的唯一证据；patch 数变少必须逐个核对（通常是上游已实现我们的 patch，删台账即可）。
+- `scripts/sync-upstream.ps1` / `check-upstream.ps1` 已降级为 **legacy（merge 模型）**，不要再用。
 
 ---
 
 ## 8. 禁区
 
-- 不在 `upstream-mirror` 提交；不 rebase 已合并的上游快照；不 cherry-pick 上游 commit。
+- 不在 `upstream-mirror` 提交；不 `git merge upstream/main` 进 `main`（只 `rebase --onto` 重放）；不 cherry-pick 上游 commit。
 - 不改 `UpdateClient` / `UpdateInstaller` / `UpdateRelease` 的内部校验逻辑（只改装配层与配置来源）。
 - 不提交 `Data/`、`artifacts/`、日志、截图、本机路径。
 - 不为"整洁"重构未涉及的上游代码；不删测试求绿；不用 `-X ours/theirs` 整文件覆盖冲突。

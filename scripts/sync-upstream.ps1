@@ -1,4 +1,8 @@
 ﻿#Requires -Version 5.1
+# DEPRECATED (2026-10-20) -- DO NOT USE. This script implements the merge model, which breaks the
+# thin patch layer (a merge commit in main makes the patch series unreplayable/unrevertable).
+# Use instead:  bash .fork/bin/fork-sync.sh --check | --apply    (git rebase --onto upstream/main)
+# Docs: docs/fork/README.md . Kept only as a reference for the legacy flow.
 <#
 .SYNOPSIS
     把上游 glassdesk-open-source 的最新源码快照合并到本地产品主线（供人和 agent 共用）。

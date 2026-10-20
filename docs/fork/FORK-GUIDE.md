@@ -22,7 +22,7 @@
 ## 2. 为什么选这个方案
 
 ### 选定的方案
-Fork + `upstream` 纯净镜像分支 + `main` 自有产品主线 + **merge 整版快照**升级。
+Fork + `upstream` 纯净镜像分支（`upstream-mirror`）+ `main` 自有产品主线 + **rebase --onto 整版重放**升级。
 
 ### 为什么 `main` 不保持上游镜像
 教科书做法是"`main` 永远等于 upstream、功能全在 feature 分支"。这里反过来更合适：
@@ -30,8 +30,26 @@ Fork + `upstream` 纯净镜像分支 + `main` 自有产品主线 + **merge 整�
 - 你会长期在产品层面改名、调设置、加功能；把 `main` 当上游镜子只会让你天天在自己的东西上写 `if fork`。
 - 因此：`upstream` 专门当镜子，`main` 专门当产品。
 
-### 为什么用 merge 而不是 rebase
-上游每次升级是"一个 commit 覆盖整版改动"，delta 可能几千行。rebase 你的 N 个提交 = 在同一个大 delta 上连续撞 N 次冲突；merge 只在边界上撞一次。配合 `rerere` 效果更好。
+### 为什么用 rebase 而不是 merge
+
+先说清楚代价：上游每次升级是“一个 commit 覆盖整版改动”，delta 可能几千行。
+`rebase --onto` 要逐个重放我们的 N 个 patch，理论上会撞 N 次冲突；merge 只在边界上撞一次。
+
+那为什么仍然选 rebase：
+
+1. **merge 一次，patch 就永久失效**。merge 之后历史里混进上游节点，我们的 patch 提交再也无法单独重放、
+   无法单独 `revert`、无法 `range-diff` 验证“没丢东西”，也无法日后拆成多个 patch 推上游。
+   冲突只是被“一次性吸收”了，代价是 patch 层变成不可维护的二半子。
+2. **我们的 patch 本就应该很小、很跳频（≤8 文件、按需求分）**。小而分散的 patch 在 rebase 时
+   大多数是干净的；真正反复撞车的只是少数高冲突面文件（`AppHost.cs`、`LauncherWindow.xaml`、
+   `DockWindow.xaml.cs`），这类文件该重构（挤到自己的新文件里），而不是靠 merge 藏起来。
+3. **rerere 已开**（`fork-init.sh` 默认打开）。同一处冲突解一次，后续 rebase 自动复用，代价回到接近 merge。
+4. **上游可能实现我们的 patch**。只有 rebase 流能让它在同步时被识别为“空提交并跳过”（上游已做则删台账）。
+
+结论：merge 省的是**当次的手工**，rebase 省的是**三年后的重写**。选后者，并把 patch 保持小。
+
+反例（什么时候改回 merge）：如果 patch 层膨胀到数千行、集中在 `GlassDesk.UI`，就不再是 patch 而是硬分叉，
+那时 merge 也不救你 —— 应该按下面“什么时候切换成硬分叉”处理。
 
 ### 为什么不用 submodule / subtree / vendor
 - submodule/subtree：需求要改 Dock/WPF 内部（UI、布局、渲染），跨仓边界根本够不着。
@@ -146,20 +164,24 @@ dotnet run --project src/GlassDesk.App/GlassDesk.App.csproj -c Release
 
 ## 7. 上游发布后怎么升级
 
-```powershell
-pwsh -NoProfile -File scripts/sync-upstream.ps1 -DryRun   # 看 diff 规模
-pwsh -NoProfile -File scripts/sync-upstream.ps1 -TargetTag v1.4.0
+```bash
+bash .fork/bin/fork-sync.sh --check                       # 看 diff 规模与冲突面
+bash .fork/bin/fork-sync.sh --apply                       # rebase --onto 重放 + range-diff + 测试
+bash .fork/bin/fork-sync.sh --apply --no-test             # 只想先看重放结果
+bash .fork/bin/fork-sync.sh --abort                       # 冲突搞不定时回滚
 ```
 
-脚本做的事：校验 remote 状态 → `fetch --tags` → 打印 `LAST-SYNCED..目标` 的 `diff --stat` → 从 `main` 建 `sync/<tag>` → `merge` → 跑三个测试工程 → 提示人工 review 与合并步骤。
+脚本做的事：`fetch` → 算 `merge-base` → 冲突面分级 → `git rebase --onto upstream/main <旧基线> main` →
+`range-diff` 比对 patch 是否都还在 → 跑 `TEST_CMD`（= `scripts/fork-verify.sh`）→ 追加 `docs/fork/SYNC-LOG.md`。
 
 冲突处理原则：
 1. **先看上游那边改了什么、为什么改**（`git diff <base> <tag> -- <冲突文件>`），再决定你的改动是否还成立。
 2. 上游修了 bug 而你改过同一处 → 优先接受上游实现，把你的意图重放到新结构上。
 3. 解完冲突立刻 `dotnet build` + 三个 `dotnet test`，不要攒着一起跑。
-4. 合并提交信息写清"同步上游 vX.Y.Z，解决 N 处冲突，其中语义冲突 M 处"，方便回溯。
+4. 冲突解法记进 `docs/fork/CONFLICTS.md`；冲突面超过 5 个文件就先 `git branch backup/$(date +%F)`。
+5. rebase 之后跑 `fork-doctor.sh`，绿了才算同步完。
 
-同步完成后更新 `docs/fork/LAST-SYNCED`。
+同步完成后更新 `docs/fork/LAST-SYNCED`，并在 `SYNC-LOG.md` 补“人工确认”。
 
 ---
 

@@ -97,12 +97,28 @@ bash scripts/fork-verify.sh --full   # 构建 + 三个基线测试工程（慢�
 
 ## 当前债务（2026-10-20 体检）
 
-`fork-doctor` 仍报 1 个硬失败，来源是本次脚手架之前的三个提交，尚未改写：
+历史改写过一次（旧 sha → 编号）：`0bee658→patch(001)`，`8122254` 拆成 `patch(002..006)`，`303eb54→patch(007)`；
+之后两份流程文档/工具更新顺延为 `patch(008)` / `patch(009)`。
+每次改写前后**代码树完全一致**（`git diff`（排除 `docs/fork/patches`）为空），旧指向留在
+`backup/pre-reword-2026-10-20` 与 `backup/pre-split-2026-10-20`。
 
-| sha | 现状 | 计划 |
+切分结果（原 `patch(002)` 的 28 个文件）：
+
+| 新编号 | 内容 | 文件数 |
 |---|---|---|
-| `0bee658` | `docs(fork): …`，10 文件 | reword → `patch(001)`，台账补 `001-fork-scaffold.md` |
-| `8122254` | 27 文件，混了 5 个功能 | reword → `patch(002)`；**建议拆成 4–5 个 patch**（高冲突面文件：`AppHost.cs`、`LauncherWindow.xaml`、`DockWindow.xaml.cs`） |
-| `303eb54` | 10 文件，3 个修复 + 文档 | reword → `patch(003)` |
+| `patch(002)` | 启动台滚轮翻页 | 4 |
+| `patch(003)` | 从桌面批量添加 + 本地化显示名 | 7 |
+| `patch(004)` | 修「显示方式」被 Normalize 改回 | 9 |
+| `patch(005)` | Win 键手势状态机 + 键盘钩子 | 4 |
+| `patch(006)` | 原生任务栏接管 + 托盘入口 | 10 |
 
-reword/split 都要改写已推送到 `origin/main` 的历史，需先经同意再 force-push。
+每个子 patch 都单独编译通过（4 次 `fork-verify` 全绿），依赖方向已写进台账：
+`patch(006)` 必须在 `patch(005)` 之后（直接 `new WinKeyHook(...)`）。
+
+剩余债务（软警告，不阻塞）：
+
+| 项 | 现状 | 计划 |
+|---|---|---|
+| `patch(004)` / `patch(006)` | 9–10 个文件（超 8 软上限） | 可接受：单需求自包含。004 跨「配置模型+设置页+Dock 刷新」，006 跨「App 装配+启动台+设置页」 |
+| `patch(005)` ↔ `patch(006)` | 强耦合（006 引用 005 的类型） | 要撤就一起撤；已写进台账 |
+| `scripts/sync-upstream.ps1` / `check-upstream.ps1` | 已加 DEPRECATED 头，仍在库里占位 | 下一个大版本可删（先确认无人依赖其行为） |

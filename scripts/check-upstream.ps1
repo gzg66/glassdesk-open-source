@@ -1,4 +1,7 @@
 ﻿#Requires -Version 5.1
+# DEPRECATED (2026-10-20) -- DO NOT USE. Pairs with the legacy merge-based sync-upstream.ps1.
+# Use instead:  bash .fork/bin/fork-check-upstream.sh   (exit 10 = upstream has a new snapshot)
+# Docs: docs/fork/README.md . Kept only as a reference for the legacy flow.
 <#
 .SYNOPSIS
     检查上游是否有比本地记录更新的源码快照。
