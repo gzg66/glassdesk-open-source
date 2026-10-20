@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# 守卫 1/2：分支与工作区规则。消息/体量校验在 commit-msg。
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+CFG="$ROOT/.fork/config"
+[ -f "$CFG" ] || exit 0
+# shellcheck disable=SC1090
+set -a; . "$CFG"; set +a
+: "${MIRROR_BRANCH:=main}"
+
+fail() { printf '\n\033[31m[fork-thin-patch] %s\033[0m\n' "$*" >&2; exit 1; }
+note() { printf '\033[33m[fork-thin-patch] %s\033[0m\n' "$*" >&2; }
+
+BR="$(git symbolic-ref --short HEAD 2>/dev/null || echo DETACHED)"
+
+# 镜像分支必须只读：它永远等于 upstream/<branch>
+if [ "$BR" = "$MIRROR_BRANCH" ]; then
+  fail "禁止在镜像分支 '$MIRROR_BRANCH' 上提交。镜像分支必须永远等于 $UPSTREAM_REMOTE/$UPSTREAM_BRANCH。
+  改法: git switch -c <集成分支>（默认 $INTEGRATION_BRANCH）"
+fi
+
+# 改了 patch 明细却忘了重建索引
+if git diff --cached --name-only | grep -qE '^docs/fork/patches/[0-9]+-.*\.md$'; then
+  git diff --cached --name-only | grep -Fxq 'docs/fork/PATCHES.md' \
+    || note "改了 docs/fork/patches/*.md 但没重建索引 —— bash .fork/bin/fork-status.sh --ledger"
+fi
+exit 0

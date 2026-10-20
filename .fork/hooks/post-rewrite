@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# rebase/amend 之后提醒：验证重放没丢东西 + 更新台账。
+set -uo pipefail
+note() { printf '\033[33m[fork-thin-patch] %s\033[0m\n' "$*" >&2; }
+
+note "patch 层刚被重写。按顺序确认：
+  1) bash .fork/bin/fork-doctor.sh        # 薄层体检
+  2) bash .fork/bin/fork-status.sh        # 偏差与文档缺失
+  3) 补一条 docs/fork/SYNC-LOG.md 记录（改了哪些 patch、冲突怎么解的、测试结果）"
+exit 0

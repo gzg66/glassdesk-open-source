@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# 推送前轻量检查上游新鲜度 + patch 层完整性。绝不阻塞推送（除硬失败）。
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+CFG="$ROOT/.fork/config"
+[ -f "$CFG" ] || exit 0
+# shellcheck disable=SC1090
+set -a; . "$CFG"; set +a
+: "${UPSTREAM_REMOTE:=upstream}"; : "${UPSTREAM_BRANCH:=main}"
+: "${MIRROR_BRANCH:=main}"; : "${FETCH_MAX_AGE_HOURS:=6}"
+cd "$ROOT" || exit 0
+
+note() { printf '\033[33m[fork-thin-patch] %s\033[0m\n' "$*" >&2; }
+
+# 1) 上游是否已前进（有缓存节流，避免每次推送都联网）
+LAST="$ROOT/.fork/state/last-fetch"
+NOW=$(date +%s)
+stale=1
+if [ -f "$LAST" ]; then
+  then_ts=$(cat "$LAST" 2>/dev/null || echo 0)
+  [ $((NOW - then_ts)) -lt $((FETCH_MAX_AGE_HOURS * 3600)) ] && stale=0
+fi
+if [ "$stale" = "1" ]; then
+  if timeout 20 git fetch --quiet "$UPSTREAM_REMOTE" "$UPSTREAM_BRANCH" 2>/dev/null; then
+    echo "$NOW" > "$LAST"
+  else
+    note "无法 fetch $UPSTREAM_REMOTE（离线/无权限），跳过新鲜度检查"
+  fi
+fi
+if git rev-parse --verify -q "$UPSTREAM_REMOTE/$UPSTREAM_BRANCH" >/dev/null; then
+  BEHIND=$(git rev-list --count "$MIRROR_BRANCH..$UPSTREAM_REMOTE/$UPSTREAM_BRANCH" 2>/dev/null || echo 0)
+  [ "$BEHIND" -gt 0 ] && note "上游已前进 $BEHIND 个提交 —— 推送前建议 bash .fork/bin/fork-sync.sh --check"
+fi
+
+# 2) 镜像分支污染硬失败
+if git rev-parse --verify -q "$UPSTREAM_REMOTE/$UPSTREAM_BRANCH" >/dev/null; then
+  EXTRA=$(git rev-list --count "$UPSTREAM_REMOTE/$UPSTREAM_BRANCH..$MIRROR_BRANCH" 2>/dev/null || echo 0)
+  if [ "$EXTRA" -gt 0 ]; then
+    printf '\n\033[31m[fork-thin-patch] 镜像分支 %s 有 %s 个不属于上游的提交 —— 薄层已破。\033[0m\n' "$MIRROR_BRANCH" "$EXTRA" >&2
+    exit 1
+  fi
+fi
+
+# 3) 提醒把文档带上
+if ! git diff --quiet "$MIRROR_BRANCH..HEAD" -- docs/fork 2>/dev/null; then :; fi
+exit 0

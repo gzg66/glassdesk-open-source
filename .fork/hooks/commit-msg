@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# 守卫 2/2：提交信息前缀 + 单 patch 体量。$1 = 提交信息文件
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+CFG="$ROOT/.fork/config"
+[ -f "$CFG" ] || exit 0
+# shellcheck disable=SC1090
+set -a; . "$CFG"; set +a
+: "${PATCH_PREFIX:=patch}"; : "${MAX_FILES_PER_PATCH:=8}"; : "${FORK_STRICT:=0}"
+: "${MIRROR_BRANCH:=main}"
+
+fail() { printf '\n\033[31m[fork-thin-patch] %s\033[0m\n' "$*" >&2; exit 1; }
+note() { printf '\033[33m[fork-thin-patch] %s\033[0m\n' "$*" >&2; }
+
+MSG_FILE="${1:-}"
+[ -f "$MSG_FILE" ] || exit 0
+SUBJ="$(sed -n '1p' "$MSG_FILE")"
+
+# merge/revert/fixup 放行
+case "$SUBJ" in
+  Merge\ *|Revert\ *|fixup!\ *|squash!\ *|amend!\ *) exit 0 ;;
+esac
+
+if ! printf '%s' "$SUBJ" | grep -Eq "^${PATCH_PREFIX}\([0-9]+\): .+"; then
+  fail "提交信息必须以 '${PATCH_PREFIX}(NNN): ' 开头（NNN = docs/fork/patches/ 下的编号）。
+  例如: ${PATCH_PREFIX}(007): fix(conf): 关掉 up.grade.retry 的死循环
+  查下一个号: bash .fork/bin/fork-new-patch.sh <slug>
+  你写的: $SUBJ"
+fi
+
+ID="$(printf '%s' "$SUBJ" | sed -n "s/^${PATCH_PREFIX}(\([0-9]*\)).*/\1/p")"
+[ "$ID" = "000" ] && exit 0   # 脚手架提交豁免体量检查
+
+N="$(git diff --cached --name-only | grep -c . || true)"
+if [ "$N" -gt "$MAX_FILES_PER_PATCH" ]; then
+  if [ "${FORK_STRICT:-0}" = "1" ]; then
+    fail "patch($ID) 改了 $N 个文件，超过上限 $MAX_FILES_PER_PATCH（FORK_STRICT=1）。
+  拆成多个 patch，或确认这确实是一个不可分割的改动后设 FORK_STRICT=0。"
+  else
+    note "patch($ID) 改了 $N 个文件 > 建议上限 $MAX_FILES_PER_PATCH —— patch 在变厚，考虑拆"
+  fi
+fi
+exit 0

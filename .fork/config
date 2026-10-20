@@ -1,0 +1,22 @@
+# fork-thin-patch 配置。改了这里等于改同步策略，评审时一起看。
+UPSTREAM_URL="https://github.com/everlosttime/glassdesk-open-source.git"
+UPSTREAM_REMOTE=upstream
+UPSTREAM_BRANCH=main
+MIRROR_BRANCH=upstream-mirror
+INTEGRATION_BRANCH=main
+PATCH_PREFIX=patch
+PATCH_ID_WIDTH=3
+# 薄层硬指标：单 patch 建议最多改几个文件
+MAX_FILES_PER_PATCH=8
+# patch 总量预算，超过就该考虑上游 PR / 重构 / vendor
+MAX_PATCHES=40
+# 多久没被上游触达的 patch 算「可能已失效」
+STALE_DAYS=180
+# 同步后必须通过的命令，留空则跳过
+TEST_CMD='bash scripts/fork-verify.sh'
+# 代理（cron/systemd 不继承 shell 变量；留空则直连）
+GIT_PROXY=http://192.168.0.1:7892
+# 推送前多久之内算「上游信息新鲜」
+FETCH_MAX_AGE_HOURS=6
+# 1 = pre-commit 超文件数上限直接拒绝提交
+FORK_STRICT=0

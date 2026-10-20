@@ -14,3 +14,10 @@ TestResults/
 *.pfx
 *.p12
 *.pem
+
+# fork-thin-patch: cron/fetch/临时状态
+.fork/state/
+
+# fork-thin-patch: 上面的 `bin/`（.NET 构建产物）会连带忽略 .fork/bin，这里显式取回
+!.fork/bin/
+!.fork/bin/**
