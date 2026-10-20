@@ -1,0 +1,80 @@
+﻿{
+    "capturedAt":  "2026-10-20",
+    "environment":  {
+                        "os":  "Microsoft Windows 11 专业工作站版 10.0.26200",
+                        "dotnetSdk":  "10.0.402",
+                        "note":  "Dock tests spawn D:\\dotnet10\\dotnet.exe (hardcoded upstream path); create junction to the SDK dir or those 5 tests fail."
+                    },
+    "knownCause":  "AppServices failures all trace to build\\package.ps1 missing from the public snapshot; fix upstream, never in our fork.",
+    "projects":  {
+                     "GlassDesk.Core.Tests":  {
+                                                  "total":  181,
+                                                  "passed":  181,
+                                                  "failed":  0,
+                                                  "knownFailures":  [
+
+                                                                    ]
+                                              },
+                     "GlassDesk.AppServices.Tests":  {
+                                                         "total":  378,
+                                                         "passed":  332,
+                                                         "failed":  46,
+                                                         "knownFailures":  [
+                                                                               "GlassDesk.AppServices.Tests.AcceptanceScriptPathTests.Inno编译参数必须逐项传递且保留含空格路径",
+                                                                               "GlassDesk.AppServices.Tests.AcceptanceScriptPathTests.打包器接受并核验自包含发布已携带的Unicode许可证",
+                                                                               "GlassDesk.AppServices.Tests.PackageOutputGuardTests.Allows_nonexistent_child_under_controlled_root",
+                                                                               "GlassDesk.AppServices.Tests.PackageOutputGuardTests.Rejects_existing_directory_or_file_without_changing_contents(existingFile: False)",
+                                                                               "GlassDesk.AppServices.Tests.PackageOutputGuardTests.Rejects_existing_directory_or_file_without_changing_contents(existingFile: True)",
+                                                                               "GlassDesk.AppServices.Tests.PackageOutputGuardTests.Rejects_target_outside_or_equal_to_controlled_root(relativeTarget: \".\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageOutputGuardTests.Rejects_target_outside_or_equal_to_controlled_root(relativeTarget: \"controlled-evil\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageOutputGuardTests.Rejects_target_outside_or_equal_to_controlled_root(relativeTarget: \"outside\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageOutputGuardTests.Rejects_target_reached_through_junction_ancestor_without_creating_in_real_target",
+                                                                               "GlassDesk.AppServices.Tests.PackageOutputGuardTests.Rejects_targets_that_overlap_protected_data(relation: \"data-under-target\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageOutputGuardTests.Rejects_targets_that_overlap_protected_data(relation: \"equal\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageOutputGuardTests.Rejects_targets_that_overlap_protected_data(relation: \"target-under-data\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.SetupPE版本必须与发行清单一致(property: \"fileVersion\", mismatchedVersion: \"9.8.7.6\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.SetupPE版本必须与发行清单一致(property: \"productVersion\", mismatchedVersion: \"9.8.7-preview.6\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.Setup缺少PE版本资源时必须拒绝",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.ZIP拒绝绝对路径和越界载荷路径(path: \"../outside.txt\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.ZIP拒绝绝对路径和越界载荷路径(path: \"C:/outside.txt\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.ZIP拒绝绝对路径和越界载荷路径(path: \"folder/../../outside.txt\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.ZIP拒绝绝对路径和越界载荷路径(path: \"folder\\\\outside.txt\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.ZIP拒绝重复的大小写不敏感路径",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.ZIP载荷清单必须与归档内容双向一致(mutation: \"extra-record\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.ZIP载荷清单必须与归档内容双向一致(mutation: \"hash\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.ZIP载荷清单必须与归档内容双向一致(mutation: \"length\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.ZIP载荷清单必须与归档内容双向一致(mutation: \"missing-record\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.必须随候选载荷提供发行说明",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.必须携带运行时与应用数据许可材料(requiredFile: \"INNO-SETUP-LICENSE.txt\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.必须携带运行时与应用数据许可材料(requiredFile: \"LICENSE.txt\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.必须携带运行时与应用数据许可材料(requiredFile: \"THIRD-PARTY-NOTICES.md\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.必须携带运行时与应用数据许可材料(requiredFile: \"ThirdPartyNotices.txt\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.必须携带运行时与应用数据许可材料(requiredFile: \"UNICODE-LICENSE.txt\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.必须携带运行时与应用数据许可材料(requiredFile: \"WINDOWS-SDK-LICENSE.txt\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.发布身份必须与单一发行配置一致",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.含中文路径的候选清单由WindowsPowerShell按UTF8读取",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.候选目录拒绝未登记的额外文件",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.即使清单与哈希匹配也拒绝测试SDK和源码内容(path: \"GlassDesk.AppServices.Tests.dll\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.即使清单与哈希匹配也拒绝测试SDK和源码内容(path: \"GlassDesk.pdb\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.即使清单与哈希匹配也拒绝测试SDK和源码内容(path: \"GlassDesk.Tests.dll\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.即使清单与哈希匹配也拒绝测试SDK和源码内容(path: \"sdk/hostpolicy.dll\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.即使清单与哈希匹配也拒绝测试SDK和源码内容(path: \"src/GlassDeskWindow.cs\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.交付校验和必须与实际文件双向一致(mutation: \"extra-record\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.交付校验和必须与实际文件双向一致(mutation: \"hash\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.交付校验和必须与实际文件双向一致(mutation: \"length\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.交付校验和必须与实际文件双向一致(mutation: \"missing-record\")",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.未知发行状态仍然拒绝",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.未指定发行清单时从脚本目录解析默认清单",
+                                                                               "GlassDesk.AppServices.Tests.PackageVerificationTests.有效的未签名候选包通过且校验不改动输入"
+                                                                           ]
+                                                     },
+                     "GlassDesk.Dock.Tests":  {
+                                                  "total":  477,
+                                                  "passed":  477,
+                                                  "failed":  0,
+                                                  "knownFailures":  [
+
+                                                                    ]
+                                              }
+                 }
+}
