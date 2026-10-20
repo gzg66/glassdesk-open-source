@@ -23,17 +23,25 @@ UP_HEAD="$(git rev-parse --short "$UP")"
 # 每 patch 一行: id|subject|files|age_days
 rows=""
 missing_doc=0
+unnumbered=0
 while IFS= read -r sha; do
   [ -n "$sha" ] || continue
   subj="$(git log -1 --format=%s "$sha")"
   id="$(printf '%s' "$subj" | sed -n "s/^${PATCH_PREFIX}(\([0-9]*\)).*/\1/p")"
-  [ -n "$id" ] || id="---"
+  [ -n "$id" ] || id=""
   nf="$(git show --pretty=format: --name-only "$sha" | sed '/^$/d' | wc -l | tr -d ' ')"
   ts="$(git log -1 --format=%ct "$sha")"
   age=$(( ( $(date +%s) - ts ) / 86400 ))
-  pad="$(printf '%0*d' "$PATCH_ID_WIDTH" "$id" 2>/dev/null || echo "$id")"
+  # 没有 patch(NNN) 编号的提交不能被当成“脚手架”混过去（doctor 对它是硬失败）。
+  if [ -z "$id" ]; then
+    unnumbered=$((unnumbered+1))
+    rows="${rows}---|${subj}|${nf}|${age}|(编号缺失)"$'\n'
+    continue
+  fi
+  # 10#$id 去前导零再补零；直接 printf '%0*d' 接非数字会“输出 000 又报错”，再被 || 拼成 000---。
+  pad="$(printf '%0*d' "$PATCH_ID_WIDTH" "$((10#$id))" 2>/dev/null || printf '%s' "$id")"
   doc="$(ls "$(patch_dir)" 2>/dev/null | grep -E "^${id}-" | head -1 || true)"
-  [ -n "$doc" ] || { case "$id" in "---"|"000") doc="(脚手架)" ;; *) missing_doc=$((missing_doc+1)); doc="-" ;; esac; }
+  [ -n "$doc" ] || { case "$id" in 000) doc="(脚手架)" ;; *) missing_doc=$((missing_doc+1)); doc="-" ;; esac; }
   rows="${rows}${pad}|${subj}|${nf}|${age}|${doc}"$'\n'
 done <<EOF
 $(git rev-list --reverse "$BASE..$INTEGRATION_BRANCH" 2>/dev/null)
@@ -85,11 +93,12 @@ if [ "$PATCH_N" -eq 0 ]; then dim "还没有 patch"; else
 fi
 
 hdr "问题"
+if [ "$unnumbered" -gt 0 ]; then warn "$unnumbered 个提交没有 ${PATCH_PREFIX}(NNN) 编号 —— 没有台账身份，fork-doctor 会判硬失败"; fi
 if [ "$missing_doc" -gt 0 ]; then warn "$missing_doc 个 patch 没有 docs/fork/patches/<id>-*.md 明细 —— 三个月后没人知道它为什么存在"; fi
 STALE="$(printf '%s' "$rows" | awk -F'|' -v d="$STALE_DAYS" 'NF>2 && $4>d {printf "%s ",$1}')"
 [ -n "$STALE" ] && warn "patch 龄期 > ${STALE_DAYS} 天: $STALE——顺手确认上游是不是已经做了同样的事"
 if [ "$PATCH_N" -gt "$MAX_PATCHES" ]; then warn "patch 数超预算 $MAX_PATCHES，该把通用的推上游 / 该拆仓库了"; fi
-[ "$missing_doc" -eq 0 ] && [ -z "$STALE" ] && ok "无"
+[ "$missing_doc" -eq 0 ] && [ -z "$STALE" ] && [ "$unnumbered" -eq 0 ] && ok "无"
 
 dim ""
 dim "体检: bash .fork/bin/fork-doctor.sh    台账: bash .fork/bin/fork-status.sh --ledger"
