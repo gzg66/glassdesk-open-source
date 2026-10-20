@@ -77,6 +77,12 @@ internal static partial class Shell32
     /// <summary>所有用户的「开始」菜单程序目录（<c>%ProgramData%\...\Start Menu\Programs</c>）。</summary>
     internal static readonly Guid FolderIdCommonPrograms = new("0139d44e-6afe-49f2-8690-3dafcae6ffb8");
 
+    /// <summary>当前用户的桌面目录（可能被 OneDrive 等重定向）。</summary>
+    internal static readonly Guid FolderIdDesktop = new("b4bfcc3a-db2c-424c-b029-7fe99a87c641");
+
+    /// <summary>所有用户的公共桌面目录（<c>%PUBLIC%\Desktop</c>）。</summary>
+    internal static readonly Guid FolderIdCommonDesktop = new("c4aa340d-f20f-4863-afef-f87ef2e6ba25");
+
     // ---- 图标 ----
 
     /// <summary>取图标句柄。返回的句柄必须用 <c>DestroyIcon</c> 释放。</summary>
@@ -119,6 +125,15 @@ internal static partial class Shell32
     /// 网址存在 ID 列表里，不在路径字段里。见 <c>ShortcutResolver</c>。
     /// </remarks>
     internal const uint SigdnUrl = 0x80068000;
+
+    /// <summary>
+    /// 要求以「资源管理器里显示的名字」给出外壳项名称（<c>SIGDN_NORMALDISPLAY</c>）。
+    /// </summary>
+    /// <remarks>
+    /// 桌面批量添加用它拿本地化名称：文件名是 <c>notepad.exe</c>，
+    /// 外壳给的却是「记事本」。
+    /// </remarks>
+    internal const uint SigdnNormalDisplay = 0x00000000;
 
     /// <summary>
     /// 把 PIDL 转成一个名称字符串。

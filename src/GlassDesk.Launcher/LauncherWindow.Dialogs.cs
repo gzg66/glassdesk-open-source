@@ -7,6 +7,7 @@ using GlassDesk.Core.Contracts;
 using GlassDesk.Core.Models;
 using GlassDesk.Core.Models.Settings;
 using GlassDesk.Core.Storage;
+using GlassDesk.Platform.Shell;
 using GlassDesk.UI.Controls;
 using Microsoft.Win32;
 
@@ -28,16 +29,46 @@ public partial class LauncherWindow
             var picker = new OpenFolderDialog();
             if (ShowModalDialog(() => picker.ShowDialog(this))) ImportPaths([picker.FolderName]);
         });
+        AddMenu(menu, "从桌面批量添加…", AddFromDesktop);
         AddMenu(menu, "网站…", AddWebsite);
         menu.IsOpen = true;
     }
 
     private void ImportPaths(IReadOnlyList<string> paths)
+        => ImportRequests(paths.Select(path => new ImportRequest { Source = path }).ToList());
+
+    /// <summary>
+    /// 「从桌面批量添加」：扫描公共桌面与当前用户桌面，整批导入。
+    /// </summary>
+    private void AddFromDesktop()
+    {
+        if (_services is null) return;
+
+        var scan = DesktopEntryScanner.Scan();
+        if (scan.Roots.Count == 0)
+        {
+            ShowNotice("找不到桌面目录，无法批量添加。");
+            return;
+        }
+
+        if (scan.Entries.Count == 0)
+        {
+            ShowNotice("桌面上没有可添加的文件、程序、快捷方式或文件夹。");
+            return;
+        }
+
+        // 名字用外壳给的本地化显示名（「记事本」而不是 notepad.exe）；
+        // 外壳取不到时扫描器已退回文件名。
+        ImportRequests(scan.Entries
+            .Select(entry => new ImportRequest { Source = entry.Path, DisplayName = entry.Name })
+            .ToList());
+    }
+
+    private void ImportRequests(IReadOnlyList<ImportRequest> requests)
     {
         if (_services is null) return;
         try
         {
-            var requests = paths.Select(path => new ImportRequest { Source = path }).ToList();
             var before = LauncherLayoutRules.AppIds(_workspace?.Layout ?? new LauncherLayout()).ToHashSet(StringComparer.Ordinal);
             var result = _services.Import.ImportItems(requests);
             var imported = result.Added.Concat(result.Duplicates).Select(item => item.Id).Distinct().ToList();

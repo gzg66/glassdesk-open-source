@@ -18,6 +18,12 @@ public static class KnownFolders
     /// <summary>当前用户的「开始」菜单程序目录。</summary>
     public static string? Programs => Resolve(Shell32.FolderIdPrograms);
 
+    /// <summary>当前用户的桌面目录（可能被 OneDrive 重定向）。</summary>
+    public static string? Desktop => Resolve(Shell32.FolderIdDesktop);
+
+    /// <summary>所有用户共用的桌面目录。</summary>
+    public static string? CommonDesktop => Resolve(Shell32.FolderIdCommonDesktop);
+
     /// <summary>取不到时返回 null，由调用方决定这是不是问题。</summary>
     private static string? Resolve(Guid folderId)
     {
