@@ -36,6 +36,15 @@ internal static class ShellComIds
 
     /// <summary><c>IPropertyStore</c> 的接口标识。</summary>
     internal static readonly Guid PropertyStore = new("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99");
+
+    /// <summary>
+    /// <c>IPersistStream</c> 的接口标识。
+    /// </summary>
+    /// <remarks>
+    /// 用于从内存流加载一段嵌在其它文件里的 shell link（跳转列表就是这么存的），
+    /// 与 <see cref="PersistFile"/>（按文件加载）二选一。
+    /// </remarks>
+    internal static readonly Guid PersistStream = new("00000109-0000-0000-C000-000000000046");
 }
 
 /// <summary>属性系统的键：格式 id 加属性编号。</summary>
@@ -247,4 +256,34 @@ internal static class Siigbf
 
     /// <summary>源图小于请求尺寸时允许放大。</summary>
     internal const int ScaleUp = 0x00000100;
+}
+
+/// <summary>
+/// <c>IPersistStream</c>：把一个 COM 对象从流里加载出来。
+/// </summary>
+/// <remarks>
+/// 与 <see cref="IPersistFile"/> 同一族，区别是数据源不是磁盘上的文件。
+/// 跳转列表把每一项存成嵌在大文件里的 shell link 字节，所以只能走流。
+///
+/// <para>
+/// 方法顺序即 vtable 槽位顺序，<strong>五个方法必须全声明</strong>——只声明用得上的
+/// Load 会让后面本来是 Save 的位置错位，而这种错不会报错。
+/// </para>
+/// </remarks>
+[GeneratedComInterface(StringMarshalling = StringMarshalling.Utf16)]
+[Guid("00000109-0000-0000-C000-000000000046")]
+internal partial interface IPersistStream
+{
+    void GetClassID(out Guid classId);
+
+    /// <summary>返回 <c>S_FALSE</c> 表示未修改，所以必须保留原始返回值而不是让它抛异常。</summary>
+    [PreserveSig]
+    int IsDirty();
+
+    /// <summary>从流里加载。流参数用裸指针，不需要在托管侧持有它的接口声明。</summary>
+    void Load(nint stream);
+
+    void Save(nint stream, [MarshalAs(UnmanagedType.Bool)] bool clearDirty);
+
+    void GetSizeMax(out ulong size);
 }

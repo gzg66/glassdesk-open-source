@@ -16,6 +16,7 @@ internal static class CompatibilityProbe
     private static int Main(string[] args)
     {
         if (args.Length >= 2 && args[0] == "--capture-protocol-fixture") return CaptureProtocolFixture.Run(args[1]);
+        if (args.Length == 1 && args[0] == "--jumplist-tasks") return RunJumpListTasks();
         if (args.Length == 7 && args[0] == "--compare-live-region")
         {
             SetThreadDpiAwarenessContext(-4);
@@ -169,6 +170,36 @@ internal static class CompatibilityProbe
         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var stream = File.Create(path); encoder.Save(stream);
     }
+    /// <summary>
+    /// 打印本机每个程序从跳转列表里解出的任务：人工核对解析结果用。
+    /// </summary>
+    /// <remarks>
+    /// 真实数据不能进测试（含用户路径），所以核对只能靠这个探针：列表里的程序
+    /// 应当与「开始菜单右键该程序」看到的任务一致；解不出标题的条目会被跳过，
+    /// 属于已知的覆盖率限制，不是回归。
+    /// </remarks>
+    private static int RunJumpListTasks()
+    {
+        var recent = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Microsoft", "Windows", "Recent");
+
+        var tasks = GlassDesk.Platform.Shell.JumpListTaskReader.ReadAll(recent);
+        Console.WriteLine($"tasks: {tasks.Count}");
+
+        foreach (var group in tasks.GroupBy(task => Path.GetFileName(task.ExecutablePath), StringComparer.OrdinalIgnoreCase)
+                     .OrderByDescending(group => group.Count()))
+        {
+            Console.WriteLine($"== {group.Key} ({group.Count()})");
+            foreach (var task in group)
+            {
+                Console.WriteLine($"   {task.Title} | {task.Arguments} | {task.WorkingDirectory}");
+            }
+        }
+
+        return 0;
+    }
+
     [DllImport("user32.dll")] private static extern nint SetThreadDpiAwarenessContext(nint context);
     [DllImport("user32.dll")] private static extern nint GetShellWindow();
     [DllImport("user32.dll")] private static extern bool SetWindowPos(nint hwnd, nint after, int x, int y, int width, int height, uint flags);

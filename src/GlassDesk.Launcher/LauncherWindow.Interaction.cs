@@ -113,6 +113,7 @@ public partial class LauncherWindow
                     AddMenu(menu, "在分组中后移", () => CommitEdit(layout => LauncherLayoutEditor.MoveGroupMember(layout, group.Id, id, index + 1)));
                 AddMenu(menu, "移出分组", () => CommitEdit(layout => LauncherLayoutEditor.RemoveFromGroup(layout, id, group.Id, _view.Page, 0, _view.Capacity)));
             }
+            AttachJumpListTasks(menu, id);
         }
         return menu;
     }
