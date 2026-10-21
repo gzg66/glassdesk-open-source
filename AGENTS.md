@@ -122,15 +122,15 @@ dotnet test tests/GlassDesk.AppServices.Tests/GlassDesk.AppServices.Tests.csproj
 dotnet test tests/GlassDesk.Dock.Tests/GlassDesk.Dock.Tests.csproj -c Release
 ```
 
-**基线：不是全绿，别当成自己改坏了**（详见 `docs/fork/BASELINE.md`，机器可读 `docs/fork/BASELINE.json`）
+**基线：三个工程目前全绿**（详见 `docs/fork/BASELINE.md`，机器可读 `docs/fork/BASELINE.json`）
 
 | 工程 | 基线 |
 |---|---|
-| Core | 181/181 通过 |
+| Core | 192/192 通过 |
 | Dock | 481/481 通过（**依赖 `D:\dotnet10` → SDK 目录的 junction**，测试里写死了作者机器路径；没有 junction 会有 5 个 `Win32Exception`） |
-| AppServices | 378 中 46 失败 —— 公开快照缺 `build/package.ps1`，**属上游问题，不要修** |
+| AppServices | 414/414 通过（补齐上游 v1.4.0 的打包脚本后转绿，见 `docs/fork/patches/013-packaging-scripts.md`） |
 
-- 判定标准是"**不引入基线外新失败**"，不是"必须全绿"。
+- 判定标准仍是"**不引入基线外新失败**"；历史上 `AppServices` 那 46 条红是"公开快照缺 `build/package.ps1`"，已于 patch 013 从上游 v1.4.0 原样引入解决。
 - **构建前先退出正在运行的 GlassDesk**，否则输出目录被占用，报 `MSB3021 无法将文件…复制到…because it is being used by another process`。这不是代码错误：
   ```powershell
   Get-Process GlassDesk -ErrorAction SilentlyContinue | Stop-Process -Force
