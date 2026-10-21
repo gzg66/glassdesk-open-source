@@ -20,7 +20,7 @@
 | 测试工程 | total | passed | failed | 结论 |
 |---|---|---|---|---|
 | `GlassDesk.Core.Tests` | 192 | 192 | 0 | 全绿（含自有 DockVisibility 3 个、WheelNavigation 8 个、Normalize 回归 1 个、WinKeyGestureRouter 8 个、WinKeyIdentity 4 个、LauncherEnterRouter 7 个） |
-| `GlassDesk.AppServices.Tests` | 378 | 332 | **46** | 基线红，原因见下（含自有 DesktopEntryScanner 测试 6 个） |
+| `GlassDesk.AppServices.Tests` | 414 | 414 | 0 | 全绿（含自有 DesktopEntryScanner 测试 6 个；打包脚本引入后 46 条历史失败已消除） |
 | `GlassDesk.Dock.Tests` | 481 | 481 | 0 | 全绿（**需要先做下面的 junction**） （含自有 FullscreenWindowRules 4 个）|
 | `dotnet build src/GlassDesk.App/... -c Release` | — | — | — | 0 警告 0 错误 |
 
@@ -42,24 +42,17 @@ cmd /c mklink /J D:\dotnet10 "%LOCALAPPDATA%\Microsoft\dotnet"
 
 建完 junction 后 Dock 测试 477/477 全绿。**不要把测试里的路径改成 `Environment.ProcessPath`**——那是改上游文件，会永久增加同步冲突面；上游如果把路径参数化了你再跟随。
 
-## 已知失败原因 2：公开快照缺 `build/package.ps1`
+## 历史失败原因 2：公开快照缺 `build/package.ps1`（已解决）
 
-46 个 `AppServices` 失败全部源自 `Assert.Contains` / `Assert.Equal` 之类断言，根因是测试要读：
+46 个 `AppServices` 失败曾全部源自测试要读 `build\package.ps1` 而公开快照里没有（`build/` 只有 `build.ps1`、`publish.ps1`、`compile-transition-shader.ps1`、`New-GlassDeskIcon.ps1`）。
 
-```
-build\package.ps1
-```
+**已按上游 v1.4.0 的选择落地（patch 013）**：把上游这次终于公开的打包脚本原样取过来，而不是自己写一份：
 
-而公开源码快照里 `build/` 只有 `build.ps1`、`publish.ps1`、`compile-transition-shader.ps1`、`New-GlassDeskIcon.ps1`。**`package.ps1` 属于未导出的私有部分。**
+- `build/package.ps1`、`build/verify-package.ps1`
+- `packaging/GlassDesk.iss`、`packaging/release.json`
+- 脚本要求随包携带的声明文件：`docs/第三方声明.md`、`packaging/RELEASE-NOTES.md`
 
-表现：
-- `AcceptanceScriptPathTests.Inno编译参数必须逐项传递…` → `FileNotFoundException: build\package.ps1`
-- `PackageOutputGuardTests.*` → 期望退出码 2，实际拿到别的（脚本不存在）
-- `PackageVerificationTests.*` → 同上
-
-**处理：记录为已知失败，不修。** 自己补一个 `package.ps1` 等于凭空维护上游私有脚本，风险大于收益（打包走 `publish.ps1` + `ISCC` 手工流程即可，见 README）。
-
----
+结果：`AppServices` 从 378/332(46 红) 变成 **414/414 全绿**。脚本内容未做任何修改，后续上游更新可以整文件替换。
 
 ## 判定规则（同步脚本用的）
 
