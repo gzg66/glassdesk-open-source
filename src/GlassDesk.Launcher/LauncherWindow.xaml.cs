@@ -52,6 +52,7 @@ public partial class LauncherWindow : GlassWindow
     public LauncherWindow()
     {
         InitializeComponent();
+        AddHandler(Keyboard.PreviewKeyDownEvent, new KeyEventHandler(OnLauncherPreviewKeyDown), true);
         Closed += (_, _) => { _noticeTimer?.Stop(); CancelDrag(); StopPageSlide(); _iconLoader.Dispose(); };
         PageViewport.SizeChanged += (_, _) => StopPageSlide();
         Deactivated += OnLauncherDeactivated;
